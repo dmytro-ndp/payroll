@@ -1,50 +1,77 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+Version change: unversioned template -> 1.0.0
+Modified principles: template placeholders -> I. Мінімальна складність; II. Єдина
+відповідальність класу; III. Локальні консольні операції; IV. Явне впровадження
+залежностей; V. Мова коду й пояснень
+Added sections: Межі предметної області; Робочий процес і перевірка відповідності
+Removed sections: none
+Follow-up TODOs: RATIFICATION_DATE requires the original adoption date.
+-->
+# Система нарахування зарплати Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Мінімальна складність
+Кожне рішення MUST бути найпростішим, що повністю задовольняє підтверджену вимогу.
+Код MUST уникати передчасних абстракцій, непотрібних патернів і функцій поза
+поточною задачею. Виняток можливий лише за явно задокументованої технічної причини.
+Це зберігає навчальний код зрозумілим і придатним для аналізу.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Єдина відповідальність класу
+Кожен клас MUST мати одну чітко сформульовану відповідальність і одну причину для
+зміни. Клас, який одночасно моделює доменні дані, виконує бізнес-дію та взаємодіє з
+користувачем, MUST бути розділений. Це забезпечує відповідність SRP та спрощує
+перевірку бізнес-правил.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Локальні консольні операції
+Методи MUST NOT виконувати реальні зовнішні операції. Результати дій, що в
+майбутньому можуть вимагати інтеграції, MUST повідомлятися через консоль. Застосунок
+MUST компілюватися та запускатися тільки з консолі і MUST NOT залежати від зовнішніх
+сервісів або баз даних на поточному етапі. Це робить поведінку відтворюваною в
+навчальному середовищі.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Явне впровадження залежностей
+Усі залежності MUST передаватися через конструктор або setter. Статичні методи MUST
+NOT використовуватися для впровадження, отримання або приховування залежностей.
+Кожна залежність має бути видимою в API класу, щоб зберегти тестованість і явний
+контроль зв'язків.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Мова коду й пояснень
+Назви класів, методів та атрибутів MUST бути англійською мовою. Коментарі та
+пояснення в коді MUST бути українською мовою. Імена MUST точно описувати призначення
+елементів без неочевидних скорочень; це підтримує однакове читання коду учасниками
+навчального проєкту.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Межі предметної області
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+Застосунок є інформаційною системою предметної області «Система нарахування
+зарплати». Система MUST підтримувати сценарії: нарахування зарплати, видача
+зарплати та видача чеку. Дійові особи — бухгалтер, працівник і директор — MUST
+кожна мати щонайменше один доступний сценарій. Реалізація MUST явно виконувати
+щонайменше три самостійні бізнес-дії, визначені у специфікації функціональності.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+UML-діаграми MUST зберігатися в каталозі `docs` у текстовому форматі Mermaid Charts.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Робочий процес і перевірка відповідності
+
+Кожна зміна MUST зберігати можливість компіляції та запуску з консолі без додаткової
+інфраструктури. Під час перегляду змін MUST перевірятися відповідність SRP,
+мінімальній складності, способу впровадження залежностей, мовним правилам і межам
+предметної області. Зміна, що додає зовнішній сервіс, базу даних або реальну зовнішню
+операцію, MUST бути відхилена, доки конституція не буде формально оновлена.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+Ця конституція має пріоритет над локальними практиками проєкту. Будь-яка поправка
+MUST містити обґрунтування, опис впливу на чинні артефакти та оновлення версії за
+Semantic Versioning: MAJOR для несумісного вилучення або переозначення принципів,
+MINOR для нового принципу чи суттєво розширеної настанови, PATCH для уточнень без
+зміни змісту. Поправки MUST фіксувати дату останнього перегляду; первинна дата
+ратифікації зберігається незмінною.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Перед прийняттям змін автор і рецензент MUST перевірити кожну відповідну вимогу цієї
+конституції. Виявлене порушення MUST бути виправлене або мати явно схвалений запис
+про поправку до конституції до інтеграції зміни.
+
+**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): original adoption date is unknown | **Last Amended**: 2026-09-18
