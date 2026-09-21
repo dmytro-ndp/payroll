@@ -9,11 +9,14 @@ stateDiagram-v2
 
     WaitingForOrder --> FormingSheet: директор видав чинний DirectorOrder
     WaitingForOrder --> WaitingForOrder: наказ відкликано або відсутній
+    WaitingForOrder --> WaitingForOrder: запит Receipt до завершення / відмова
     FormingSheet --> ReadyToCalculate: бухгалтер додав унікальний Employee
     FormingSheet --> FormingSheet: дублікат Employee або нечинний наказ / відмова
+    FormingSheet --> FormingSheet: запит Receipt до завершення / відмова
     ReadyToCalculate --> Calculating: бухгалтер почав нарахування за чинним наказом
     ReadyToCalculate --> ReadyToCalculate: порожня відомість або нечинний наказ / відмова
+    ReadyToCalculate --> ReadyToCalculate: запит Receipt до завершення / відмова
+    Calculating --> Calculating: запит Receipt до завершення / відмова
     Calculating --> CalculationCompleted: створено PayrollCalculation
     CalculationCompleted --> IssuingReceipt: працівник запитує Receipt
     IssuingReceipt --> CalculationCompleted: Receipt видано
-    WaitingForOrder --> WaitingForOrder: запит Receipt до завершення / відмова
