@@ -1,0 +1,52 @@
+sequenceDiagram
+    actor director as Директор
+    actor accountant as Бухгалтер
+    actor employee as Працівник
+    participant order as DirectorOrder
+    participant sheet as PayrollSheet
+    participant rule as StandardPayrollRule
+    participant calculation as PayrollCalculation
+    participant receipt as Receipt
+
+    director->>order: DirectorOrder(orderId)
+    Note over order: Наказ є чинним після створення.
+
+    accountant->>sheet: addEmployee(employee)
+    sheet->>order: isActive()
+    alt наказ нечинний
+        order-->>sheet: false
+        sheet-->>accountant: відмова без зміни складу
+    else працівник уже є у відомості
+        order-->>sheet: true
+        sheet-->>accountant: відмова без дубліката
+    else чинний наказ і новий працівник
+        order-->>sheet: true
+        sheet-->>accountant: працівника додано
+    end
+
+    accountant->>sheet: calculate(rule)
+    sheet->>order: isActive()
+    alt наказ нечинний
+        order-->>sheet: false
+        sheet-->>accountant: відмова без PayrollCalculation
+    else відомість порожня
+        order-->>sheet: true
+        sheet-->>accountant: відмова без PayrollCalculation
+    else передумови виконано
+        order-->>sheet: true
+        sheet->>rule: calculate(employee)
+        rule-->>sheet: amount
+        sheet->>calculation: PayrollCalculation(employee, amount)
+        calculation-->>sheet: завершене нарахування
+        sheet-->>accountant: нарахування завершено
+    end
+
+    employee->>sheet: findCalculation(employee)
+    alt нарахування відсутнє
+        sheet-->>employee: відмова без Receipt
+    else нарахування завершене
+        sheet-->>employee: PayrollCalculation
+        employee->>receipt: Receipt(employee, calculation)
+        employee->>receipt: present()
+        receipt-->>employee: квитанцію видано
+    end

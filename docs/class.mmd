@@ -1,0 +1,67 @@
+classDiagram
+    class Employee {
+        -String employeeId
+        -String fullName
+        +Employee(String employeeId, String fullName)
+        +String getEmployeeId()
+    }
+
+    class DirectorOrder {
+        -String orderId
+        -boolean active
+        +DirectorOrder(String orderId)
+        +boolean isActive() final
+        +void revoke()
+    }
+
+    class PayrollSheet {
+        -DirectorOrder order
+        -Set~Employee~ employees
+        -List~PayrollCalculation~ calculations
+        +PayrollSheet(DirectorOrder order)
+        +boolean addEmployee(Employee employee)
+        +List~PayrollCalculation~ calculate(PayrollRule rule)
+        +PayrollCalculation findCalculation(Employee employee)
+    }
+
+    class PayrollCalculation {
+        -Employee employee
+        -decimal amount
+        +PayrollCalculation(Employee employee, decimal amount)
+        +decimal getAmount()
+    }
+
+    class Receipt {
+        -Employee employee
+        -PayrollCalculation calculation
+        +Receipt(Employee employee, PayrollCalculation calculation)
+        +void present()
+    }
+
+    class PayrollRule {
+        <<interface>>
+        +decimal calculate(Employee employee)
+    }
+
+    class BasePayrollRule {
+        <<abstract>>
+        #BasePayrollRule()
+    }
+
+    class StandardPayrollRule {
+        +StandardPayrollRule()
+        +decimal calculate(Employee employee)
+    }
+
+    PayrollSheet --> "1" DirectorOrder : наказ
+    PayrollSheet o-- "0..*" Employee : працівники
+    PayrollSheet *-- "0..*" PayrollCalculation : нарахування
+    PayrollCalculation --> "1" Employee : працівник
+    Receipt --> "1" Employee : адресат
+    Receipt --> "1" PayrollCalculation : завершене нарахування
+    PayrollSheet ..> PayrollRule : використовує
+    BasePayrollRule ..|> PayrollRule : реалізує
+    StandardPayrollRule --|> BasePayrollRule : успадковує
+
+    note for PayrollSheet "Додавання і нарахування заборонені без чинного DirectorOrder.\nДублікат Employee не змінює склад.\nПорожня відомість не створює PayrollCalculation."
+    note for Receipt "Доступна лише адресатові завершеного PayrollCalculation."

@@ -1,0 +1,30 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Директор" as Director
+actor "Бухгалтер" as Accountant
+actor "Працівник" as Employee
+
+rectangle "Система нарахування заробітної плати" {
+  usecase "Видати наказ" as IssueOrder
+  usecase "Перевірити чинність\nDirectorOrder" as CheckOrder
+  usecase "Додати працівника\nдо відомості" as AddEmployee
+  usecase "Нарахувати\nзаробітну плату" as Calculate
+  usecase "Отримати квитанцію" as ReceiveReceipt
+}
+
+Director --> IssueOrder
+Accountant --> AddEmployee
+Accountant --> Calculate
+Employee --> ReceiveReceipt
+
+AddEmployee .> CheckOrder : <<include>>
+Calculate .> CheckOrder : <<include>>
+IssueOrder .> CheckOrder : <<створює чинний наказ>>
+
+note bottom of CheckOrder
+  Додавання працівника та нарахування
+  можливі лише за чинного DirectorOrder.
+end note
+@enduml
