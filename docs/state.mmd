@@ -19,4 +19,5 @@ stateDiagram-v2
     Calculating --> Calculating: запит Receipt до завершення / відмова
     Calculating --> CalculationCompleted: створено PayrollCalculation
     CalculationCompleted --> IssuingReceipt: працівник запитує Receipt
+    CalculationCompleted --> [*]: розрахунковий цикл завершено
     IssuingReceipt --> CalculationCompleted: Receipt видано
