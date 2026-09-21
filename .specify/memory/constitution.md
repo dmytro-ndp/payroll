@@ -1,50 +1,83 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: unversioned template -> 1.0.0
+- Modified principles: none; this is the initial ratification.
+- Added sections: Core Principles, Technical Constraints, Documentation and Development Workflow,
+  Governance.
+- Removed sections: none.
+- Follow-up TODOs: TODO(SUBJECT_DOMAIN) must be replaced with the assigned subject-domain name.
+-->
+# Конституція Payroll
 
-## Core Principles
+## Основні принципи
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Мінімальна складність
+Застосунок ПОВИНЕН використовувати найпростішу архітектуру та програмне рішення, що задовольняє
+поточне навчальне завдання. Нові рівні абстракції, фреймворки й шаблони ПОВИННІ мати конкретну,
+задокументовану потребу; спекулятивне розширення заборонене. Це зберігає систему зрозумілою для
+навчання та перевірки.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Єдина відповідальність
+Кожен клас ПОВИНЕН мати одну чітко визначену відповідальність відповідно до принципу єдиної
+відповідальності (Single Responsibility Principle, SRP). Зміна непов'язаної відповідальності НЕ
+ПОВИННА вимагати зміни класу. Це спрощує пояснення, тестування та супровід проєктування.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Імітація зовнішніх операцій у консолі
+Методи, які інакше виконували б зовнішні операції, ПОВИННІ виводити відповідне повідомлення в
+консоль замість виконання реальної операції. Це забезпечує спостережувану поведінку без складності
+зовнішніх інтеграцій.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Локальне виконання з командного рядка
+Компіляція та запуск ПОВИННІ виконуватися виключно з командного рядка. На поточному етапі проєкт
+НЕ ПОВИНЕН залежати від зовнішніх сервісів або баз даних. Це забезпечує переносимість і
+відтворюваність застосунку в навчальному середовищі.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Явне впровадження залежностей
+Залежності ПОВИННІ передаватися лише через конструктори або setter-методи. Статичні методи НЕ
+ПОВИННІ використовуватися для впровадження залежностей. Це робить залежності об'єктів явними й
+підтримує ізольоване тестування.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### VI. Мова та іменування
+Назви класів, методів, атрибутів та інших програмних елементів ПОВИННІ бути англійською мовою.
+Коментарі до коду й пояснення ПОВИННІ бути українською мовою. Це зберігає звичне для Java
+іменування та виконує вимоги до комунікації в курсі.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### VII. Текстова UML-документація
+UML-діаграми ПОВИННІ зберігатися як текстові файли в каталозі `docs`. Діаграми ПОВИННІ описувати
+поточне проєктування та оновлюватися, коли змінюється відображена в них структура. Текстовий
+формат дає змогу перевіряти документацію в системі контролю версій.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### VIII. Українська мова специфікації проєкту
+Специфікація проєкту ПОВИННА вестися українською мовою. Усі нові й змінені вимоги, сценарії,
+критерії приймання та пов'язані пояснення в документах специфікації ПОВИННІ бути українською,
+щоб зберігати однозначність вимог для учасників навчального проєкту.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Технічні обмеження
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+Застосунок є навчальною Java-інформаційною системою для
+TODO(SUBJECT_DOMAIN): замінити на назву предметної області, задану варіантом.
+До внесення зміни до цієї конституції він ПОВИНЕН використовувати лише локальні дані в межах
+процесу. Виведення в консоль є обов'язковою заміною інтеграціям, зокрема зі сховищем, мережею,
+сповіщеннями чи сторонніми сервісами.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+## Документація та процес розробки
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Зміни ПОВИННІ перевірятися на відповідність SRP, мінімальній складності, виконанню з командного
+рядка, явному впровадженню залежностей і мовним вимогам. Специфікації ПОВИННІ перевірятися на
+відповідність вимозі української мови. Зміна, що впливає на задокументований зв'язок класів,
+ПОВИННА оновити відповідну текстову UML-діаграму в `docs`. Будь-який виняток з основного
+принципу потребує задокументованої зміни конституції до реалізації.
+
+## Управління
+
+Ця конституція має пріоритет над суперечливими практиками розробки проєкту. Зміни ПОВИННІ
+документувати запропоноване правило, його обґрунтування, вплив на наявний код і документацію, а
+також оновлювати версію за політикою нижче. Відповідність ПОВИННА перевірятися під час планування,
+реалізації та рецензування.
+
+Версіювання відповідає семантичному версіюванню: MAJOR — для несумісного вилучення або
+переозначення управлінських норм, MINOR — для нового принципу чи істотно розширеної вимоги,
+PATCH — для уточнень без зміни обов'язкової поведінки. Початкова дата ухвалення зберігається для
+всіх наступних змін; дату останньої зміни необхідно оновлювати за кожної зміни норм.
+
+**Version**: 1.0.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-21
