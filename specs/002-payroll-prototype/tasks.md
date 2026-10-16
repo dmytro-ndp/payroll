@@ -39,10 +39,10 @@ user stories одночасно.
 
 **Призначення**: Ініціалізація структури проєкту, без зовнішніх залежностей (FR-010).
 
-- [ ] T001 Створити структуру каталогів `src/ua/payroll/`, `src/ua/payroll/model/`,
+- [X] T001 Створити структуру каталогів `src/ua/payroll/`, `src/ua/payroll/model/`,
       `src/ua/payroll/rule/` і порожній каталог `bin/` для скомпільованих класів, відповідно до
       розділу «Project Structure» `plan.md`
-- [ ] T002 [P] Додати до кореневого `.gitignore` запис `/bin/` для каталогу компіляції (доповнення
+- [X] T002 [P] Додати до кореневого `.gitignore` запис `/bin/` для каталогу компіляції (доповнення
       до наявних правил `*.class`/`*.jar`, без видалення чинних записів)
 
 **Контрольна точка**: Структуру каталогів створено; можна розпочинати фундаментальні завдання.
@@ -57,20 +57,20 @@ user stories одночасно.
 
 **⚠️ КРИТИЧНО**: Жодна user story не може вважатися реалізованою, доки ця фаза не завершена.
 
-- [ ] T003 Створити каркас точки входу `Main` у `src/ua/payroll/Main.java`: пакет `ua.payroll`,
+- [X] T003 Створити каркас точки входу `Main` у `src/ua/payroll/Main.java`: пакет `ua.payroll`,
       метод `public static void main(String[] args)`, один спільний екземпляр
       `java.util.Scanner` над `System.in` для всього сеансу (FR-019, рішення `research.md` §2)
-- [ ] T004 [P] Створити модель `Employee` у `src/ua/payroll/model/Employee.java`: поля
+- [X] T004 [P] Створити модель `Employee` у `src/ua/payroll/model/Employee.java`: поля
       `employeeId` (`String`) і `fullName` (`String`); конструктор
       `Employee(String employeeId, String fullName)`; методи `String getEmployeeId()` і
       `String getFullName()`; інваріант з `data-model.md`: «`employeeId` не може бути порожнім;
       рівність і унікальність у `PayrollSheet` визначаються за `employeeId`»
-- [ ] T005 [P] Створити модель `DirectorOrder` у `src/ua/payroll/model/DirectorOrder.java`: поля
+- [X] T005 [P] Створити модель `DirectorOrder` у `src/ua/payroll/model/DirectorOrder.java`: поля
       `orderId` (`String`) і `active` (`boolean`); конструктор `DirectorOrder(String orderId)`,
       що встановлює наказ чинним одразу після створення (FR-001); метод `boolean isActive() final`;
       метод `void revoke()`, що скасовує чинність; консольне повідомлення українською про видання
       наказу виводиться викликом з `Main` (T009), а не самим конструктором
-- [ ] T006 [P] Створити модель `PayrollCalculation` у `src/ua/payroll/model/PayrollCalculation.java`:
+- [X] T006 [P] Створити модель `PayrollCalculation` у `src/ua/payroll/model/PayrollCalculation.java`:
       поля `employee` (`Employee`) і `amount` (`BigDecimal`, відповідає типу `decimal` на
       `docs/class.mmd`); конструктор `PayrollCalculation(Employee employee, BigDecimal amount)`;
       метод `BigDecimal getAmount()`; тип потрібен як поле `PayrollSheet.calculations` ще до
@@ -94,22 +94,22 @@ user stories одночасно.
 
 ### Реалізація User Story 1
 
-- [ ] T007 [US1] Створити модель `PayrollSheet` у `src/ua/payroll/model/PayrollSheet.java`: поля
+- [X] T007 [US1] Створити модель `PayrollSheet` у `src/ua/payroll/model/PayrollSheet.java`: поля
       `order` (`DirectorOrder`), `employees` (`Set<Employee>`), `calculations`
       (`List<PayrollCalculation>`, ініціалізовано порожнім); конструктор
       `PayrollSheet(DirectorOrder order)` — явне впровадження залежності наказу через конструктор
       (принцип V конституції); залежить від T004, T005, T006
-- [ ] T008 [US1] Реалізувати метод `boolean addEmployee(Employee employee)` у
+- [X] T008 [US1] Реалізувати метод `boolean addEmployee(Employee employee)` у
       `src/ua/payroll/model/PayrollSheet.java`: повертає `true` й додає працівника лише якщо
       `order.isActive()` і серед `employees` немає того самого `employeeId`; інакше повертає
       `false` без зміни `employees` (інваріанти з `data-model.md`: «Додавання... вимагають
       `order.isActive() == true`»; «`employees` не містить дублікатів за `employeeId`»);
       залежить від T007
-- [ ] T009 [US1] Додати до `src/ua/payroll/Main.java` крок видання наказу: запит ідентифікатора
+- [X] T009 [US1] Додати до `src/ua/payroll/Main.java` крок видання наказу: запит ідентифікатора
       наказу через `Scanner`, створення `DirectorOrder`, виведення повідомлення українською про
       видання чинного наказу (FR-001, контракт «Крок 1» з `contracts/console-cli.md`); залежить
       від T003, T005
-- [ ] T010 [US1] Додати до `src/ua/payroll/Main.java` цикл формування відомості: запит кількості
+- [X] T010 [US1] Додати до `src/ua/payroll/Main.java` цикл формування відомості: запит кількості
       спроб додавання, зчитування `employeeId` і `fullName` для кожної спроби, виклик
       `PayrollSheet.addEmployee(...)`, виведення повідомлення про успіх або про відмову (дублікат
       чи нечинний наказ) без аварійного завершення процесу (FR-002, FR-003, FR-019, FR-020,
@@ -133,17 +133,17 @@ user stories одночасно.
 
 ### Реалізація User Story 2
 
-- [ ] T011 [P] [US2] Створити інтерфейс `PayrollRule` у `src/ua/payroll/rule/PayrollRule.java`:
+- [X] T011 [P] [US2] Створити інтерфейс `PayrollRule` у `src/ua/payroll/rule/PayrollRule.java`:
       метод `BigDecimal calculate(Employee employee)` — контракт обчислення суми нарахування
-- [ ] T012 [US2] Створити абстрактний клас `BasePayrollRule` у
+- [X] T012 [US2] Створити абстрактний клас `BasePayrollRule` у
       `src/ua/payroll/rule/BasePayrollRule.java`, що реалізує `PayrollRule` і надає спільну
       основу конкретних правил; конструктор `protected BasePayrollRule()`; залежить від T011
-- [ ] T013 [US2] Створити клас `StandardPayrollRule` у
+- [X] T013 [US2] Створити клас `StandardPayrollRule` у
       `src/ua/payroll/rule/StandardPayrollRule.java`, що успадковує `BasePayrollRule`: метод
       `calculate(Employee employee)` повертає однакову фіксовану суму-константу (`BigDecimal`)
       для кожного працівника незалежно від його атрибутів (FR-005, рішення `research.md` §4);
       залежить від T012
-- [ ] T014 [US2] Додати до `src/ua/payroll/model/PayrollSheet.java` поле `payrollRule`
+- [X] T014 [US2] Додати до `src/ua/payroll/model/PayrollSheet.java` поле `payrollRule`
       (`PayrollRule`) і метод `void setPayrollRule(PayrollRule payrollRule)` для явного
       впровадження залежності через setter (принцип V), а також реалізувати
       `List<PayrollCalculation> calculate()` без параметрів: метод повертає порожній список без
@@ -153,7 +153,7 @@ user stories одночасно.
       Простежити послідовність і гілки відмови з `docs/sequence.mmd` та переходи
       `ReadyToCalculate → Calculating → CalculationCompleted` з `docs/state.mmd`; залежить від
       T007, T008, T006, T013
-- [ ] T015 [US2] Додати до `src/ua/payroll/Main.java` крок нарахування: запит підтвердження
+- [X] T015 [US2] Додати до `src/ua/payroll/Main.java` крок нарахування: запит підтвердження
       початку нарахування, виклик `PayrollSheet.setPayrollRule(new StandardPayrollRule())`, а
       потім `PayrollSheet.calculate()`; виведення повідомлення про кожне створене нарахування
       (ім'я працівника через `getFullName()` й сума) або про відмову без створення нарахувань
@@ -175,16 +175,16 @@ user stories одночасно.
 
 ### Реалізація User Story 3
 
-- [ ] T016 [US3] Реалізувати метод `PayrollCalculation findCalculation(Employee employee)` у
+- [X] T016 [US3] Реалізувати метод `PayrollCalculation findCalculation(Employee employee)` у
       `src/ua/payroll/model/PayrollSheet.java`: повертає відповідне завершене нарахування з
       `calculations` за `employeeId` або `null`, якщо нарахування для цього працівника ще немає
       (FR-007); залежить від T007, T014
-- [ ] T017 [US3] Створити клас `Receipt` у `src/ua/payroll/model/Receipt.java`: поля `employee`
+- [X] T017 [US3] Створити клас `Receipt` у `src/ua/payroll/model/Receipt.java`: поля `employee`
       (`Employee`) і `calculation` (`PayrollCalculation`); конструктор
       `Receipt(Employee employee, PayrollCalculation calculation)`; метод `void present()`, що
       виводить у консоль повідомлення українською з іменем працівника та нарахованою сумою
       замість реальної доставки чи друку (FR-008); залежить від T006
-- [ ] T018 [US3] Додати до `src/ua/payroll/Main.java` крок видачі квитанції: запит ідентифікатора
+- [X] T018 [US3] Додати до `src/ua/payroll/Main.java` крок видачі квитанції: запит ідентифікатора
       працівника, виклик `PayrollSheet.findCalculation(...)`, за наявності результату — створення
       `Receipt` і виклик `present()`, інакше — повідомлення про відмову без створення квитанції
       (FR-007, FR-008, контракт «Крок 5»); простежити переходи `CalculationCompleted →
@@ -202,30 +202,30 @@ user stories одночасно.
 **Призначення**: Самоперевірка без зовнішніх залежностей, документація та відповідність
 конституції — застосовується до всіх user stories одночасно.
 
-- [ ] T019 [P] Створити клас `SelfCheck` у `src/ua/payroll/SelfCheck.java` (без JUnit чи інших
+- [X] T019 [P] Створити клас `SelfCheck` у `src/ua/payroll/SelfCheck.java` (без JUnit чи інших
       зовнішніх бібліотек, рішення `research.md` §6): послідовно викликає публічний API
       `Employee`, `DirectorOrder`, `PayrollSheet`, `StandardPayrollRule`, `Receipt` для сценаріїв
       успіху та для кожної з трьох відмов (дублікат, нарахування без чинного наказу/на порожній
       відомості, передчасна квитанція), перед нарахуванням встановлює правило через
       `setPayrollRule(...)`, звіряє результат власними перевірками (`if`/`throw`) і виводить
       підсумок у консоль українською (SC-003, SC-004, SC-005); залежить від завершення T003–T018
-- [ ] T020 [P] Написати кореневий `README.md`: опис призначення прототипу, посилання на
+- [X] T020 [P] Написати кореневий `README.md`: опис призначення прототипу, посилання на
       `docs/` і `specs/002-payroll-prototype/`, точні команди компіляції
       (`javac -d bin $(find src -name "*.java")` для Unix-подібних оболонок і
       `javac -d bin (Get-ChildItem -Recurse -Filter *.java src).FullName` для PowerShell) та
       запуску (`java -cp bin ua.payroll.Main`, за потреби — `java -cp bin ua.payroll.SelfCheck`)
       відповідно до FR-017 і `quickstart.md`
-- [ ] T021 Виконати ручний прогін за сценарієм `quickstart.md` (щасливий шлях і всі три відмови
+- [X] T021 Виконати ручний прогін за сценарієм `quickstart.md` (щасливий шлях і всі три відмови
       в одному запуску) на скомпільованому прототипі й зафіксувати відповідність усім
       SC-001–SC-006 та матриці: FR-012 → `docs/sequence.mmd`, FR-013 → `docs/state.mmd`,
       FR-014 → `docs/crc.xlsx`
-- [ ] T022 Провести перевірку відповідності конституції по завершеному коду: єдина
+- [X] T022 Провести перевірку відповідності конституції по завершеному коду: єдина
       відповідальність кожного класу відповідно до `docs/crc.xlsx` (принцип II), відсутність
       статичних методів для впровадження залежностей і використання `PayrollSheet.setPayrollRule`
       замість параметра `calculate(...)` (принцип V), англійські ідентифікатори й українські
       коментарі/консольні повідомлення (принцип VI); перевірити відповідність оновленим
       `docs/class.mmd`, `docs/sequence.mmd` і `docs/state.mmd`; усунути відхилення за їх наявності
-- [ ] T023 Інтегрувати в `src/ua/payroll/Main.java` повний сценарій з
+- [X] T023 Інтегрувати в `src/ua/payroll/Main.java` повний сценарій з
       `contracts/console-cli.md`: за підтвердженням користувача створити й відкликати тестовий
       `DirectorOrder`, призначити `StandardPayrollRule` setter-методом і викликати `calculate()`
       для відмови без чинного наказу; до успішного нарахування запросити квитанцію для доданого
