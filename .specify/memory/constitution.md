@@ -1,11 +1,11 @@
 <!--
 Sync Impact Report
-- Version change: unversioned template -> 1.0.0
+- Version change: 1.0.0 -> 1.0.1
 - Modified principles: none; this is the initial ratification.
 - Added sections: Core Principles, Technical Constraints, Documentation and Development Workflow,
   Governance.
 - Removed sections: none.
-- Follow-up TODOs: TODO(SUBJECT_DOMAIN) must be replaced with the assigned subject-domain name.
+- Follow-up TODOs: none.
 -->
 # Конституція Payroll
 
@@ -54,8 +54,8 @@ UML-діаграми ПОВИННІ зберігатися як текстові
 
 ## Технічні обмеження
 
-Застосунок є навчальною Java-інформаційною системою для
-TODO(SUBJECT_DOMAIN): замінити на назву предметної області, задану варіантом.
+Застосунок є навчальною Java-інформаційною системою для нарахування заробітної плати
+підприємства.
 До внесення зміни до цієї конституції він ПОВИНЕН використовувати лише локальні дані в межах
 процесу. Виведення в консоль є обов'язковою заміною інтеграціям, зокрема зі сховищем, мережею,
 сповіщеннями чи сторонніми сервісами.
@@ -80,4 +80,4 @@ TODO(SUBJECT_DOMAIN): замінити на назву предметної об
 PATCH — для уточнень без зміни обов'язкової поведінки. Початкова дата ухвалення зберігається для
 всіх наступних змін; дату останньої зміни необхідно оновлювати за кожної зміни норм.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-09-21
+**Version**: 1.0.1 | **Ratified**: 2026-09-21 | **Last Amended**: 2026-10-16

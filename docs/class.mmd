@@ -4,6 +4,7 @@ classDiagram
         -String fullName
         +Employee(String employeeId, String fullName)
         +String getEmployeeId()
+        +String getFullName()
     }
 
     class DirectorOrder {
@@ -16,11 +17,13 @@ classDiagram
 
     class PayrollSheet {
         -DirectorOrder order
+        -PayrollRule payrollRule
         -Set~Employee~ employees
         -List~PayrollCalculation~ calculations
         +PayrollSheet(DirectorOrder order)
+        +void setPayrollRule(PayrollRule payrollRule)
         +boolean addEmployee(Employee employee)
-        +List~PayrollCalculation~ calculate(PayrollRule rule)
+        +List~PayrollCalculation~ calculate()
         +PayrollCalculation findCalculation(Employee employee)
     }
 
@@ -59,7 +62,7 @@ classDiagram
     PayrollCalculation --> "1" Employee : працівник
     Receipt --> "1" Employee : адресат
     Receipt --> "1" PayrollCalculation : завершене нарахування
-    PayrollSheet ..> PayrollRule : використовує
+    PayrollSheet --> "1" PayrollRule : правило
     BasePayrollRule ..|> PayrollRule : реалізує
     StandardPayrollRule --|> BasePayrollRule : успадковує
 

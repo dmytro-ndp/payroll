@@ -15,7 +15,8 @@
 | `employeeId` | `String` | Унікальний ідентифікатор працівника (ключ рівності/унікальності у відомості) |
 | `fullName` | `String` | Повне ім'я працівника |
 
-**Методи**: конструктор `Employee(String employeeId, String fullName)`, `String getEmployeeId()`.
+**Методи**: конструктор `Employee(String employeeId, String fullName)`, `String getEmployeeId()`,
+`String getFullName()`.
 
 **Інваріанти**: `employeeId` не може бути порожнім; рівність і унікальність у `PayrollSheet`
 визначаються за `employeeId`.
@@ -42,16 +43,18 @@
 | Атрибут | Тип | Опис |
 |---|---|---|
 | `order` | `DirectorOrder` | Наказ, якому підпорядкована відомість (впроваджується через конструктор) |
+| `payrollRule` | `PayrollRule` | Правило обчислення суми (впроваджується через setter до нарахування) |
 | `employees` | `Set<Employee>` | Унікальний склад працівників відомості |
 | `calculations` | `List<PayrollCalculation>` | Завершені нарахування |
 
 **Методи**:
 - конструктор `PayrollSheet(DirectorOrder order)` — явне впровадження залежності наказу;
+- `void setPayrollRule(PayrollRule payrollRule)` — явне впровадження правила через setter;
 - `boolean addEmployee(Employee employee)` — повертає `true`/додає лише за `order.isActive()` і
   відсутності дубліката за `employeeId`; інакше повертає `false` без зміни `employees`;
-- `List<PayrollCalculation> calculate(PayrollRule rule)` — повертає порожній список (без
+- `List<PayrollCalculation> calculate()` — повертає порожній список (без
   побічних ефектів) якщо `!order.isActive()` або `employees` порожній; інакше для кожного
-  `Employee` обчислює суму через `rule.calculate(employee)`, створює `PayrollCalculation`,
+  `Employee` обчислює суму через `payrollRule.calculate(employee)`, створює `PayrollCalculation`,
   додає до `calculations`;
 - `PayrollCalculation findCalculation(Employee employee)` — повертає відповідне завершене
   нарахування або `null`/відсутність результату, якщо нарахування для цього працівника ще
@@ -61,6 +64,8 @@
 - Додавання й нарахування вимагають `order.isActive() == true` (FR-002–FR-004).
 - `employees` не містить дублікатів за `employeeId` (FR-003).
 - `calculate()` на порожній відомості не створює жодного `PayrollCalculation` (FR-004).
+- До виклику `calculate()` для відомості встановлено ненульове `payrollRule` через
+  `setPayrollRule(...)`.
 
 ## PayrollCalculation
 
@@ -74,7 +79,7 @@
 **Методи**: конструктор `PayrollCalculation(Employee employee, BigDecimal amount)`,
 `BigDecimal getAmount()`.
 
-**Інваріанти**: створюється виключно всередині `PayrollSheet.calculate(...)`; одне нарахування
+**Інваріанти**: створюється виключно всередині `PayrollSheet.calculate()`; одне нарахування
 відповідає рівно одному `Employee` в межах одного циклу (FR-006).
 
 ## Receipt
@@ -104,9 +109,9 @@
 - `StandardPayrollRule extends BasePayrollRule`: повертає фіксовану константу суми, однакову
   для кожного `Employee` незалежно від його атрибутів (FR-005, Рішення #4 у `research.md`).
 
-**Інваріанти**: `PayrollSheet` отримує конкретний екземпляр `PayrollRule` через параметр методу
-`calculate(PayrollRule rule)`, а не через статичне поле чи створення всередині `PayrollSheet`
-(явне впровадження залежності, принцип V).
+**Інваріанти**: `PayrollSheet` отримує конкретний екземпляр `PayrollRule` через
+`setPayrollRule(PayrollRule payrollRule)`, а не через статичне поле чи створення всередині
+`PayrollSheet` (явне впровадження залежності, принцип V).
 
 ## Зв'язки між класами (відповідно до `docs/class.mmd`)
 
@@ -117,7 +122,7 @@
 | `PayrollSheet` *-- `PayrollCalculation` | Композиція (0..*) | Нарахування існують лише в межах відомості |
 | `PayrollCalculation` → `Employee` | Асоціація (1) | Нарахування належить одному працівнику |
 | `Receipt` → `Employee`, `Receipt` → `PayrollCalculation` | Асоціація (1, 1) | Квитанція посилається на адресата й завершене нарахування |
-| `PayrollSheet` ..> `PayrollRule` | Залежність | Відомість використовує правило лише в межах виклику `calculate(...)` |
+| `PayrollSheet` → `PayrollRule` | Асоціація (1) | Відомість отримує правило через setter і використовує його під час `calculate()` |
 | `BasePayrollRule` ..|> `PayrollRule` | Реалізація | Абстрактна основа реалізує контракт |
 | `StandardPayrollRule` --|> `BasePayrollRule` | Успадкування | Конкретне правило успадковує спільну основу |
 
@@ -128,8 +133,8 @@
 | Очікування наказу | `PayrollSheet` ще не створено або поточний `order.isActive() == false` |
 | Формування відомості | `order.isActive() == true`, `employees` може бути порожнім або непорожнім, `calculations` порожній |
 | Готовність до нарахування | `order.isActive() == true`, `employees` непорожній, `calculations` порожній |
-| Нарахування | Виконується `calculate(rule)` (миттєвий перехід у межах виклику методу) |
-| Нарахування завершено | `calculations` непорожній після успішного `calculate(rule)` |
+| Нарахування | Виконується `calculate()` (миттєвий перехід у межах виклику методу) |
+| Нарахування завершено | `calculations` непорожній після успішного `calculate()` |
 | Видача квитанції | Виконується `Receipt.present()` для працівника з існуючим `PayrollCalculation` |
 
 Переходи відмови (нечинний наказ, дублікат, порожня відомість, передчасна квитанція) не змінюють
