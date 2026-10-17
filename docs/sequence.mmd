@@ -24,7 +24,8 @@ sequenceDiagram
         sheet-->>accountant: працівника додано
     end
 
-    Note over sheet,rule: PayrollRule передається через setPayrollRule(rule).
+    accountant->>sheet: setPayrollRule(rule)
+    Note over sheet,rule: Явне впровадження PayrollRule через setter (принцип V).
     accountant->>sheet: calculate()
     sheet->>order: isActive()
     alt наказ нечинний
