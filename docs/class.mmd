@@ -17,10 +17,11 @@ classDiagram
 
     class PayrollSheet {
         -DirectorOrder order
+        -EmployeeStorageService storageService
         -PayrollRule payrollRule
         -Set~Employee~ employees
         -List~PayrollCalculation~ calculations
-        +PayrollSheet(DirectorOrder order)
+        +PayrollSheet(DirectorOrder order, EmployeeStorageService storageService)
         +void setPayrollRule(PayrollRule payrollRule)
         +boolean addEmployee(Employee employee)
         +List~PayrollCalculation~ calculate()
@@ -56,6 +57,34 @@ classDiagram
         +decimal calculate(Employee employee)
     }
 
+    class EmployeeStorageService {
+        <<interface>>
+        +void saveEmployee(Employee employee)
+        +List~Employee~ findEmployeesOfCurrentRun()
+    }
+
+    class SqliteEmployeeStorageService {
+        -Connection connection
+        -String runId
+        +SqliteEmployeeStorageService(Connection connection, String runId)
+        +void saveEmployee(Employee employee)
+        +List~Employee~ findEmployeesOfCurrentRun()
+    }
+
+    class PayrollModule {
+        <<AbstractModule>>
+        -DirectorOrder order
+        -String runId
+        +PayrollModule(DirectorOrder order, String runId)
+        +void configure()
+        +Connection provideConnection()
+        +SqliteEmployeeStorageService provideStorageService(Connection connection)
+    }
+
+    class EmployeeWebPageGenerator {
+        +void generate(List~Employee~ employees, Path targetFile)
+    }
+
     PayrollSheet --> "1" DirectorOrder : наказ
     PayrollSheet o-- "0..*" Employee : працівники
     PayrollSheet *-- "0..*" PayrollCalculation : нарахування
@@ -65,6 +94,9 @@ classDiagram
     PayrollSheet --> "1" PayrollRule : правило
     BasePayrollRule ..|> PayrollRule : реалізує
     StandardPayrollRule --|> BasePayrollRule : успадковує
+    SqliteEmployeeStorageService ..|> EmployeeStorageService : реалізує
+    PayrollModule ..> EmployeeStorageService : прив'язує до SqliteEmployeeStorageService
+    PayrollSheet ..> EmployeeStorageService : використання інтерфейсу (конструктор)
 
     note for PayrollSheet "Додавання і нарахування заборонені без чинного DirectorOrder.\nДублікат Employee не змінює склад.\nПорожня відомість не створює PayrollCalculation."
     note for Receipt "Доступна лише адресатові завершеного PayrollCalculation."

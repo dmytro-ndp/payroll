@@ -1,10 +1,12 @@
 package ua.payroll.model;
 
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import ua.payroll.rule.PayrollRule;
+import ua.payroll.storage.EmployeeStorageService;
 
 /**
  * Відомість нарахування — керує складом працівників, посилається на наказ,
@@ -14,12 +16,15 @@ import ua.payroll.rule.PayrollRule;
 public class PayrollSheet {
 
     private final DirectorOrder order;
+    private final EmployeeStorageService storageService;
     private PayrollRule payrollRule;
     private final Set<Employee> employees = new HashSet<>();
     private final List<PayrollCalculation> calculations = new ArrayList<>();
 
-    public PayrollSheet(DirectorOrder order) {
+    @Inject
+    public PayrollSheet(DirectorOrder order, EmployeeStorageService storageService) {
         this.order = order;
+        this.storageService = storageService;
     }
 
     public void setPayrollRule(PayrollRule payrollRule) {
@@ -40,6 +45,7 @@ public class PayrollSheet {
             }
         }
         employees.add(employee);
+        storageService.saveEmployee(employee);
         return true;
     }
 

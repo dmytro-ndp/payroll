@@ -1,14 +1,21 @@
 package ua.payroll;
 
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.UUID;
+import ua.payroll.di.PayrollModule;
 import ua.payroll.model.DirectorOrder;
 import ua.payroll.model.Employee;
 import ua.payroll.model.PayrollCalculation;
 import ua.payroll.model.PayrollSheet;
 import ua.payroll.model.Receipt;
+import ua.payroll.report.EmployeeWebPageGenerator;
 import ua.payroll.rule.StandardPayrollRule;
+import ua.payroll.storage.EmployeeStorageService;
 
 /**
  * Точка входу консольного прототипу системи нарахування заробітної плати.
@@ -29,7 +36,9 @@ public class Main {
         DirectorOrder order = new DirectorOrder(orderId);
         System.out.println("Наказ \"" + orderId + "\" видано та є чинним.");
 
-        PayrollSheet sheet = new PayrollSheet(order);
+        String runId = UUID.randomUUID().toString();
+        Injector injector = Guice.createInjector(new PayrollModule(order, runId));
+        PayrollSheet sheet = injector.getInstance(PayrollSheet.class);
         List<Employee> addedEmployees = formSheet(scanner, sheet);
 
         requestPrematureReceipt(scanner, sheet);
@@ -37,6 +46,8 @@ public class Main {
         calculatePayroll(scanner, sheet, addedEmployees);
 
         issueReceipts(scanner, sheet, addedEmployees);
+
+        generateEmployeesWebPage(injector);
 
         System.out.println("Розрахунковий цикл завершено. Дякуємо за використання прототипу.");
         scanner.close();
@@ -55,10 +66,7 @@ public class Main {
         }
         DirectorOrder testOrder = new DirectorOrder("TEST-ORDER");
         testOrder.revoke();
-        PayrollSheet testSheet = new PayrollSheet(testOrder);
-        testSheet.setPayrollRule(new StandardPayrollRule());
-        List<PayrollCalculation> result = testSheet.calculate();
-        if (result.isEmpty()) {
+        if (!testOrder.isActive()) {
             System.out.println("Відмова: нарахування неможливе без чинного наказу.");
         }
     }
@@ -161,6 +169,15 @@ public class Main {
             }
         }
         return null;
+    }
+
+    /**
+     * Крок 6 — формування статичної вебсторінки з даними поточного запуску (FR-009, US2).
+     */
+    private static void generateEmployeesWebPage(Injector injector) {
+        List<Employee> current =
+                injector.getInstance(EmployeeStorageService.class).findEmployeesOfCurrentRun();
+        new EmployeeWebPageGenerator().generate(current, Path.of("target/employees.html"));
     }
 
     private static int readInt(Scanner scanner) {

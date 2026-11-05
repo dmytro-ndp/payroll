@@ -3,13 +3,22 @@ sequenceDiagram
     actor accountant as Бухгалтер
     actor employee as Працівник
     participant order as DirectorOrder
+    participant module as PayrollModule
+    participant injector as Injector
     participant sheet as PayrollSheet
+    participant storage as SqliteEmployeeStorageService
     participant rule as StandardPayrollRule
     participant calculation as PayrollCalculation
     participant receipt as Receipt
 
     director->>order: DirectorOrder(orderId)
     Note over order: Наказ є чинним після створення.
+
+    Note over module: Main: Guice.createInjector(new PayrollModule(order, runId))
+    module->>injector: bind(EmployeeStorageService -> SqliteEmployeeStorageService),<br/>bind(DirectorOrder.toInstance(order))
+    Note over injector: Main: sheet = injector.getInstance(PayrollSheet.class)<br/>(єдине місце injector.getInstance(...) для доменного класу)
+    injector->>storage: provideStorageService(connection)
+    injector->>sheet: PayrollSheet(order, storage)<br/>(Constructor Injection, принцип V/IX)
 
     accountant->>sheet: addEmployee(employee)
     sheet->>order: isActive()
@@ -21,6 +30,8 @@ sequenceDiagram
         sheet-->>accountant: відмова без дубліката
     else чинний наказ і новий працівник
         order-->>sheet: true
+        sheet->>storage: saveEmployee(employee)
+        Note over storage: upsert за employee_id у target/payroll.db
         sheet-->>accountant: працівника додано
     end
 

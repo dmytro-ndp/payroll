@@ -34,20 +34,20 @@ spec.md для незалежної реалізації й перевірки �
 
 **Purpose**: Перетворення наявного прототипу на стандартний Maven-проєкт
 
-- [ ] T001 Створити `pom.xml` у корені репозиторію: `artifactId` `payroll`, `groupId` `ua.payroll`,
+- [X] T001 Створити `pom.xml` у корені репозиторію: `artifactId` `payroll`, `groupId` `ua.payroll`,
   `maven-compiler-plugin` з `<release>21</release>`, залежності
   `com.google.inject:guice:7.0.0` та `org.xerial:sqlite-jdbc:3.51.1.0`, `maven-assembly-plugin`
   з дескриптором `jar-with-dependencies` і `mainClass` `ua.payroll.Main`, а також
   `exec-maven-plugin` (`mainClass` `ua.payroll.Main`) для команди `mvn exec:java`
-- [ ] T002 Перенести наявні джерела з `src/ua/payroll/**` до стандартної структури
+- [X] T002 Перенести наявні джерела з `src/ua/payroll/**` до стандартної структури
   `src/main/java/ua/payroll/**` без зміни вмісту, імен класів і пакетів (`Main.java`,
   `SelfCheck.java`, `model/DirectorOrder.java`, `model/Employee.java`,
   `model/PayrollCalculation.java`, `model/PayrollSheet.java`, `model/Receipt.java`,
   `rule/PayrollRule.java`, `rule/BasePayrollRule.java`, `rule/StandardPayrollRule.java`); видалити
   стару теку `src/ua`
-- [ ] T003 [P] Створити порожній каталог `src/test/java/` відповідно до стандартної структури
+- [X] T003 [P] Створити порожній каталог `src/test/java/` відповідно до стандартної структури
   Maven (автотестування залишається через `SelfCheck`, не через JUnit)
-- [ ] T004 Виконати `mvn -q clean compile` і переконатися, що перенесені класи компілюються без
+- [X] T004 Виконати `mvn -q clean compile` і переконатися, що перенесені класи компілюються без
   змін поведінки (контрольна точка перед додаванням нової логіки)
 
 **Checkpoint**: Проєкт має стандартну Maven-структуру й компілюється без змін бізнес-логіки
@@ -61,17 +61,17 @@ spec.md для незалежної реалізації й перевірки �
 
 **⚠️ CRITICAL**: Жодна з історій US1/US2 не може бути реалізована до завершення цієї фази
 
-- [ ] T005 Створити інтерфейс `EmployeeStorageService` у
+- [X] T005 Створити інтерфейс `EmployeeStorageService` у
   `src/main/java/ua/payroll/storage/EmployeeStorageService.java` з методами
   `void saveEmployee(Employee employee)` і `List<Employee> findEmployeesOfCurrentRun()` (сигнатури
   й Javadoc — за контрактом `contracts/employee-storage-service.md`)
-- [ ] T006 Створити клас `SqliteEmployeeStorageService` у
+- [X] T006 Створити клас `SqliteEmployeeStorageService` у
   `src/main/java/ua/payroll/storage/SqliteEmployeeStorageService.java`, що реалізує
   `EmployeeStorageService`; конструктор `SqliteEmployeeStorageService(Connection connection,
   String runId)` виконує `CREATE TABLE IF NOT EXISTS employees (employee_id TEXT PRIMARY KEY,
   full_name TEXT NOT NULL, run_id TEXT NOT NULL)` (методи `saveEmployee`/
   `findEmployeesOfCurrentRun` поки без реалізації — додаються в US1/US2)
-- [ ] T007 Створити клас `PayrollModule` (успадковує `com.google.inject.AbstractModule`) у
+- [X] T007 Створити клас `PayrollModule` (успадковує `com.google.inject.AbstractModule`) у
   `src/main/java/ua/payroll/di/PayrollModule.java`: конструктор приймає `DirectorOrder order,
   String runId`; `configure()` виконує
   `bind(EmployeeStorageService.class).to(SqliteEmployeeStorageService.class)` і
@@ -80,12 +80,12 @@ spec.md для незалежної реалізації й перевірки �
   `DriverManager.getConnection("jdbc:sqlite:target/payroll.db")`; метод `@Provides @Singleton
   SqliteEmployeeStorageService provideStorageService(Connection connection)` повертає
   `new SqliteEmployeeStorageService(connection, runId)` (поле `runId` модуля)
-- [ ] T008 Змінити конструктор `PayrollSheet` у `src/main/java/ua/payroll/model/PayrollSheet.java`
+- [X] T008 Змінити конструктор `PayrollSheet` у `src/main/java/ua/payroll/model/PayrollSheet.java`
   з `PayrollSheet(DirectorOrder order)` на
   `PayrollSheet(DirectorOrder order, EmployeeStorageService storageService)` (Constructor
   Injection, FR-006); зберегти поле `storageService`; решта методів (`setPayrollRule`,
   `calculate`, `findCalculation`) — без змін
-- [ ] T009 Змінити `src/main/java/ua/payroll/Main.java`: згенерувати `String runId =
+- [X] T009 Змінити `src/main/java/ua/payroll/Main.java`: згенерувати `String runId =
   UUID.randomUUID().toString()` один раз на запуск; створити `Injector injector =
   Guice.createInjector(new PayrollModule(order, runId))`; замінити виклик
   `new PayrollSheet(order)` на `injector.getInstance(PayrollSheet.class)` (єдине місце
@@ -106,21 +106,21 @@ spec.md для незалежної реалізації й перевірки �
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Реалізувати `saveEmployee(Employee employee)` у `SqliteEmployeeStorageService`
+- [X] T010 [US1] Реалізувати `saveEmployee(Employee employee)` у `SqliteEmployeeStorageService`
   (`src/main/java/ua/payroll/storage/SqliteEmployeeStorageService.java`) через upsert-запит
   `INSERT INTO employees (employee_id, full_name, run_id) VALUES (?, ?, ?) ON
   CONFLICT(employee_id) DO UPDATE SET full_name = excluded.full_name, run_id = excluded.run_id`
   (FR-004a: наявний запис оновлюється, дубліката не створюється)
-- [ ] T011 [US1] У методі `addEmployee(Employee employee)` класу `PayrollSheet`
+- [X] T011 [US1] У методі `addEmployee(Employee employee)` класу `PayrollSheet`
   (`src/main/java/ua/payroll/model/PayrollSheet.java`) викликати
   `storageService.saveEmployee(employee)` одразу після успішного додавання працівника до
   внутрішнього `Set<Employee>` (наявна логіка перевірки дублікатів і чинності наказу — без змін)
-- [ ] T012 [US1] Додати обробку помилок запису в `PayrollModule.provideConnection()` і/або
+- [X] T012 [US1] Додати обробку помилок запису в `PayrollModule.provideConnection()` і/або
   `SqliteEmployeeStorageService.saveEmployee` (`src/main/java/ua/payroll/di/PayrollModule.java`,
   `src/main/java/ua/payroll/storage/SqliteEmployeeStorageService.java`): перехоплювати
   `SQLException`/`IOException` при недоступності теки `target` для запису й виводити в консоль
   зрозуміле повідомлення українською без аварійного завершення застосунку (Edge Case)
-- [ ] T013 [US1] Додати до `src/main/java/ua/payroll/SelfCheck.java` перевірки
+- [X] T013 [US1] Додати до `src/main/java/ua/payroll/SelfCheck.java` перевірки
   (`check(description, condition)`) для поведінки збереження: повторне `saveEmployee` з тим самим
   `employeeId` і новим `fullName` не створює другого рядка, а оновлює наявний (запит `SELECT
   COUNT(*) FROM employees WHERE employee_id = ?` повертає `1`)
@@ -139,18 +139,18 @@ spec.md для незалежної реалізації й перевірки �
 
 ### Implementation for User Story 2
 
-- [ ] T014 [P] [US2] Реалізувати `findEmployeesOfCurrentRun()` у `SqliteEmployeeStorageService`
+- [X] T014 [P] [US2] Реалізувати `findEmployeesOfCurrentRun()` у `SqliteEmployeeStorageService`
   (`src/main/java/ua/payroll/storage/SqliteEmployeeStorageService.java`) через запит
   `SELECT employee_id, full_name FROM employees WHERE run_id = ? ORDER BY employee_id`, мапуючи
   рядки результату в нові об'єкти `Employee`; якщо записів немає — повертати порожній список (не
   `null`)
-- [ ] T015 [P] [US2] Створити клас `EmployeeWebPageGenerator` у
+- [X] T015 [P] [US2] Створити клас `EmployeeWebPageGenerator` у
   `src/main/java/ua/payroll/report/EmployeeWebPageGenerator.java` з методом
   `void generate(List<Employee> employees, Path targetFile)`, що формує HTML-сторінку з таблицею
   (стовпці — ідентифікатор і повне ім'я працівника) рядковою конкатенацією/`StringBuilder` без
   шаблонізаторів і записує файл через `java.nio.file.Files`; порожній список формує таблицю без
   рядків даних (Edge Case)
-- [ ] T016 [US2] У `src/main/java/ua/payroll/Main.java` після завершення наявних сценаріїв
+- [X] T016 [US2] У `src/main/java/ua/payroll/Main.java` після завершення наявних сценаріїв
   додати виклик `injector.getInstance(EmployeeStorageService.class).findEmployeesOfCurrentRun()`
   і передати результат у `new EmployeeWebPageGenerator().generate(current,
   Path.of("target/employees.html"))` (залежить від T014, T015)
@@ -170,12 +170,12 @@ spec.md для незалежної реалізації й перевірки �
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Створити/доповнити `README.md` у корені репозиторію (FR-011): опис
+- [X] T017 [US3] Створити/доповнити `README.md` у корені репозиторію (FR-011): опис
   функціональності фічі (збереження в SQLite, вебсторінка), команди збирання (`mvn clean
   package`), запуску (`mvn exec:java` і/або `java -jar
   target/payroll-<version>-jar-with-dependencies.jar`) та шлях до сформованої вебсторінки
   (`target/employees.html`)
-- [ ] T018 [US3] Виконати перевірку за `quickstart.md` (кроки 1–2) на чистому клоні: `mvn clean
+- [X] T018 [US3] Виконати перевірку за `quickstart.md` (кроки 1–2) на чистому клоні: `mvn clean
   package` завершується `BUILD SUCCESS`, запуск через `mvn exec:java` виконує наявні сценарії й
   консольні повідомлення українською мовою залишаються незмінними по суті (SC-002, SC-004)
 
@@ -188,19 +188,19 @@ spec.md для незалежної реалізації й перевірки �
 
 **Purpose**: Документація UML і підсумкова перевірка відповідності принципам конституції
 
-- [ ] T019 [P] Оновити `docs/class.mmd` (FR-012): додати клас `PayrollModule` (успадковує
+- [X] T019 [P] Оновити `docs/class.mmd` (FR-012): додати клас `PayrollModule` (успадковує
   `AbstractModule`), інтерфейс `EmployeeStorageService`, реалізацію
   `SqliteEmployeeStorageService`, клас `EmployeeWebPageGenerator` і зв'язок залежності
   `PayrollSheet ..> EmployeeStorageService` (використання інтерфейсу, впровадженого через
   конструктор)
-- [ ] T020 [P] Оновити `docs/sequence.mmd` (FR-013): показати створення `Injector` через
+- [X] T020 [P] Оновити `docs/sequence.mmd` (FR-013): показати створення `Injector` через
   `Guice.createInjector(new PayrollModule(order, runId))`, прив'язку
   `EmployeeStorageService -> SqliteEmployeeStorageService` в модулі та отримання `PayrollSheet`
   через `injector.getInstance(PayrollSheet.class)` із залежністю, впровадженою в конструктор
-- [ ] T021 Виконати `mvn exec:java -Dexec.mainClass="ua.payroll.SelfCheck"` (quickstart.md, крок
+- [X] T021 Виконати `mvn exec:java -Dexec.mainClass="ua.payroll.SelfCheck"` (quickstart.md, крок
   5) і переконатися, що всі перевірки виводять `[OK]`, підсумковий рядок —
   `пройдено N, провалено 0`
-- [ ] T022 Переглянути `src/main/java/ua/payroll/Main.java` і підтвердити SC-005
+- [X] T022 Переглянути `src/main/java/ua/payroll/Main.java` і підтвердити SC-005
   (quickstart.md, крок 6): оператор `new` НЕ використовується для `PayrollSheet` (лише
   `injector.getInstance(PayrollSheet.class)`), а `Guice.createInjector(...)` викликається рівно
   один раз
