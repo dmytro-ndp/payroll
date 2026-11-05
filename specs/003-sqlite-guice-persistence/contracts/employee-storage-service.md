@@ -71,6 +71,12 @@ PayrollSheet sheet = injector.getInstance(PayrollSheet.class); // замість
 ```
 
 - `PayrollModule` — єдиний клас, що успадковує `com.google.inject.AbstractModule` (FR-007).
-- `PayrollSheet` — єдиний клас проєкту, що створюється через `injector.getInstance(...)`
-  (SC-005); жодне інше місце коду не звертається до `Injector` напряму (заборона Service Locator,
-  принцип IX).
+- `PayrollSheet` — єдиний клас проєкту, що створюється через `injector.getInstance(...)` замість
+  оператора `new` (SC-005).
+- Заборона Service Locator (принцип IX) стосується доменного коду: жодний доменний клас (зокрема
+  `PayrollSheet`) не звертається до `Injector` напряму. Композиційний корінь `Main` — не доменний
+  код; йому ДОЗВОЛЕНО додатково викликати `injector.getInstance(EmployeeStorageService.class)`
+  після виконання сценаріїв, щоб прочитати дані для вебсторінки (FR-009, `data-model.md`, п. 5,
+  `tasks.md` T016). Це не суперечить SC-005, оскільки через DI-контейнер *створюється* лише один
+  клас (`PayrollSheet`) — виклик для `EmployeeStorageService` лише повертає вже наявний
+  singleton-екземпляр, а не створює новий клас-ціле.
