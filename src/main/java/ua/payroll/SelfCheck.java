@@ -3,42 +3,93 @@ package ua.payroll;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import ua.payroll.infrastructure.SqliteEmployeeStorageService;
 import ua.payroll.model.DirectorOrder;
 import ua.payroll.model.Employee;
+import ua.payroll.model.EmployeeStorageService;
+import ua.payroll.model.FailureReason;
+import ua.payroll.model.OperationResult;
 import ua.payroll.model.PayrollCalculation;
 import ua.payroll.model.PayrollSheet;
 import ua.payroll.model.Receipt;
+import ua.payroll.model.StorageException;
 import ua.payroll.rule.StandardPayrollRule;
-import ua.payroll.storage.EmployeeStorageService;
-import ua.payroll.storage.SqliteEmployeeStorageService;
+import ua.payroll.view.ApiResponse;
+import ua.payroll.view.EmployeeListBody;
+import ua.payroll.view.PayrollWebView;
 
 /**
- * Автоматизована самоперевірка без зовнішніх залежностей (без JUnit).
- * Викликає публічний API доменних класів для сценаріїв успіху та відмови
- * (дублікат, нарахування без чинного наказу/на порожній відомості, передчасна
- * квитанція) і виводить підсумок у консоль українською (SC-003, SC-004, SC-005).
+ * Автоматизована самоперевірка без зовнішніх залежностей (без JUnit): модель
+ * (правила R1–R6), сервіс сховища на SQLite у пам'яті та вигляд (коди відповідей).
+ * Підсумок виводиться в консоль українською.
  */
 public class SelfCheck {
 
     private static int passed = 0;
     private static int failed = 0;
 
-    public static void main(String[] args) {
-        System.out.println("=== Самоперевірка прототипу системи нарахування заробітної плати ===");
+    /** Фейкове сховище в пам'яті; {@code broken = true} імітує збій бази даних. */
+    private static class FakeStorage implements EmployeeStorageService {
+        final List<Employee> data = new ArrayList<>();
+        boolean broken = false;
 
-        checkSuccessfulAddEmployee();
-        checkDuplicateEmployeeRejected();
-        checkCalculationRejectedWithoutActiveOrder();
-        checkCalculationRejectedOnEmptySheet();
-        checkSuccessfulCalculationAndReceipt();
-        checkPrematureReceiptRejected();
-        checkSaveEmployeeUpsertDoesNotDuplicate();
-        checkFindEmployeesOfCurrentRunReturnsOnlyCurrentRun();
+        private void failIfBroken() {
+            if (broken) {
+                throw new StorageException("збій", new RuntimeException("імітація"));
+            }
+        }
+
+        @Override
+        public void saveEmployee(Employee employee) {
+            failIfBroken();
+            data.add(employee);
+        }
+
+        @Override
+        public List<Employee> findAll() {
+            failIfBroken();
+            return new ArrayList<>(data);
+        }
+
+        @Override
+        public boolean existsById(String employeeId) {
+            failIfBroken();
+            return data.stream().anyMatch(e -> e.getEmployeeId().equals(employeeId));
+        }
+
+        @Override
+        public boolean update(Employee employee) {
+            failIfBroken();
+            for (int i = 0; i < data.size(); i++) {
+                if (data.get(i).getEmployeeId().equals(employee.getEmployeeId())) {
+                    data.set(i, employee);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public boolean delete(String employeeId) {
+            failIfBroken();
+            return data.removeIf(e -> e.getEmployeeId().equals(employeeId));
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println("=== Самоперевірка системи нарахування заробітної плати ===");
+
+        checkList();
+        checkAdd();
+        checkUpdate();
+        checkDelete();
+        checkCalculationAndReceipt();
+        checkSqliteService();
+        checkView();
 
         System.out.println("Підсумок: пройдено " + passed + ", провалено " + failed + ".");
         if (failed > 0) {
@@ -46,132 +97,228 @@ public class SelfCheck {
         }
     }
 
-    private static void checkSuccessfulAddEmployee() {
-        DirectorOrder order = new DirectorOrder("ORD-1");
-        PayrollSheet sheet = new PayrollSheet(order, newInMemoryStorageService());
-        boolean added = sheet.addEmployee(new Employee("EMP-1", "Іваненко Іван"));
-        check("Додавання нового працівника за чинного наказу повертає true", added);
+    // ---- US1: читання ----
+
+    private static void checkList() {
+        FakeStorage storage = new FakeStorage();
+        PayrollSheet sheet = new PayrollSheet(new DirectorOrder("O"), storage);
+        OperationResult empty = sheet.listEmployees();
+        check("listEmployees: порожня БД дає успіх і порожній список",
+                empty.isSuccess() && empty.getEmployees().isEmpty());
+
+        storage.data.add(new Employee("E1", "Іван"));
+        OperationResult full = sheet.listEmployees();
+        check("listEmployees: непорожня БД дає список з 1 працівником",
+                full.isSuccess() && full.getEmployees().size() == 1);
+
+        storage.broken = true;
+        check("listEmployees: збій БД дає STORAGE_ERROR",
+                reason(sheet.listEmployees()) == FailureReason.STORAGE_ERROR);
     }
 
-    private static void checkDuplicateEmployeeRejected() {
-        DirectorOrder order = new DirectorOrder("ORD-2");
-        PayrollSheet sheet = new PayrollSheet(order, newInMemoryStorageService());
-        sheet.addEmployee(new Employee("EMP-1", "Іваненко Іван"));
-        boolean addedAgain = sheet.addEmployee(new Employee("EMP-1", "Інший Варіант"));
-        check("Повторне додавання того самого employeeId відхиляється", !addedAgain);
-    }
+    // ---- US2: додавання ----
 
-    private static void checkCalculationRejectedWithoutActiveOrder() {
-        DirectorOrder order = new DirectorOrder("ORD-3");
-        PayrollSheet sheet = new PayrollSheet(order, newInMemoryStorageService());
-        sheet.addEmployee(new Employee("EMP-1", "Іваненко Іван"));
+    private static void checkAdd() {
+        FakeStorage storage = new FakeStorage();
+        DirectorOrder order = new DirectorOrder("O");
+        PayrollSheet sheet = new PayrollSheet(order, storage);
+
+        check("addEmployee: коректні дані — успіх і запис у БД",
+                sheet.addEmployee(new Employee("E1", "Іван")).isSuccess()
+                        && storage.data.size() == 1);
+        check("addEmployee: дублікат — VALIDATION (R2)",
+                reason(sheet.addEmployee(new Employee("E1", "Інший"))) == FailureReason.VALIDATION);
+        check("addEmployee: порожнє поле — VALIDATION (R1)",
+                reason(sheet.addEmployee(new Employee("", "Петро"))) == FailureReason.VALIDATION);
+        check("addEmployee: пробільне поле — VALIDATION (R1)",
+                reason(sheet.addEmployee(new Employee("E2", "   "))) == FailureReason.VALIDATION);
+        check("addEmployee: null-поля — VALIDATION (R1)",
+                reason(sheet.addEmployee(new Employee(null, null))) == FailureReason.VALIDATION);
+        check("addEmployee: відмови не змінили БД", storage.data.size() == 1);
+
+        storage.broken = true;
+        check("addEmployee: збій БД — STORAGE_ERROR",
+                reason(sheet.addEmployee(new Employee("E3", "Олег"))) == FailureReason.STORAGE_ERROR);
+        storage.broken = false;
+        check("addEmployee: за збою БД колекція й БД не змінені", storage.data.size() == 1);
+
         order.revoke();
-        sheet.setPayrollRule(new StandardPayrollRule());
-        List<PayrollCalculation> result = sheet.calculate();
-        check("Нарахування без чинного наказу повертає порожній список", result.isEmpty());
+        check("addEmployee: нечинний наказ — FORBIDDEN (R4)",
+                reason(sheet.addEmployee(new Employee("E4", "Ігор"))) == FailureReason.FORBIDDEN);
+        check("addEmployee: R4 перевіряється раніше за R1",
+                reason(sheet.addEmployee(new Employee("", ""))) == FailureReason.FORBIDDEN);
     }
 
-    private static void checkCalculationRejectedOnEmptySheet() {
-        DirectorOrder order = new DirectorOrder("ORD-4");
-        PayrollSheet sheet = new PayrollSheet(order, newInMemoryStorageService());
-        sheet.setPayrollRule(new StandardPayrollRule());
-        List<PayrollCalculation> result = sheet.calculate();
-        check("Нарахування на порожній відомості повертає порожній список", result.isEmpty());
+    // ---- US3: виправлення ----
+
+    private static void checkUpdate() {
+        FakeStorage storage = new FakeStorage();
+        DirectorOrder order = new DirectorOrder("O");
+        PayrollSheet sheet = new PayrollSheet(order, storage);
+        storage.data.add(new Employee("E1", "Іван"));
+
+        check("updateEmployee: успіх змінює лише fullName",
+                sheet.updateEmployee("E1", new Employee("E1", "Новий")).isSuccess()
+                        && storage.data.get(0).getFullName().equals("Новий")
+                        && storage.data.get(0).getEmployeeId().equals("E1"));
+        check("updateEmployee: employeeId у тілі необов'язковий",
+                sheet.updateEmployee("E1", new Employee(null, "Ще")).isSuccess());
+        check("updateEmployee: неіснуючий — NOT_FOUND (R5)",
+                reason(sheet.updateEmployee("X", new Employee("X", "Хтось"))) == FailureReason.NOT_FOUND);
+        check("updateEmployee: порожнє ім'я — VALIDATION (R1)",
+                reason(sheet.updateEmployee("E1", new Employee("E1", " "))) == FailureReason.VALIDATION);
+        check("updateEmployee: розбіжність id — VALIDATION (R3)",
+                reason(sheet.updateEmployee("E1", new Employee("E2", "Хтось"))) == FailureReason.VALIDATION);
+
+        storage.broken = true;
+        check("updateEmployee: збій БД — STORAGE_ERROR",
+                reason(sheet.updateEmployee("E1", new Employee("E1", "Х"))) == FailureReason.STORAGE_ERROR);
+        storage.broken = false;
+
+        order.revoke();
+        check("updateEmployee: нечинний наказ — FORBIDDEN (R4)",
+                reason(sheet.updateEmployee("E1", new Employee("E1", "Х"))) == FailureReason.FORBIDDEN);
     }
 
-    private static void checkSuccessfulCalculationAndReceipt() {
-        DirectorOrder order = new DirectorOrder("ORD-5");
-        PayrollSheet sheet = new PayrollSheet(order, newInMemoryStorageService());
+    // ---- US4: видалення ----
+
+    private static void checkDelete() {
+        FakeStorage storage = new FakeStorage();
+        DirectorOrder order = new DirectorOrder("O");
+        PayrollSheet sheet = new PayrollSheet(order, storage);
+        storage.data.add(new Employee("E1", "Іван"));
+
+        check("deleteEmployee: неіснуючий — NOT_FOUND (R5)",
+                reason(sheet.deleteEmployee("X")) == FailureReason.NOT_FOUND);
+
+        storage.broken = true;
+        check("deleteEmployee: збій БД — STORAGE_ERROR",
+                reason(sheet.deleteEmployee("E1")) == FailureReason.STORAGE_ERROR);
+        storage.broken = false;
+
+        order.revoke();
+        check("deleteEmployee: нечинний наказ — FORBIDDEN (R4)",
+                reason(sheet.deleteEmployee("E1")) == FailureReason.FORBIDDEN);
+        check("deleteEmployee: запис не видалено за відмов", storage.data.size() == 1);
+
+        PayrollSheet active = new PayrollSheet(new DirectorOrder("O2"), storage);
+        check("deleteEmployee: успіх — запис зникає з БД і списку",
+                active.deleteEmployee("E1").isSuccess() && storage.data.isEmpty()
+                        && active.listEmployees().getEmployees().isEmpty());
+    }
+
+    // ---- Наявні сценарії нарахування й квитанції ----
+
+    private static void checkCalculationAndReceipt() {
+        DirectorOrder order = new DirectorOrder("ORD-3");
+        PayrollSheet sheet = new PayrollSheet(order, new FakeStorage());
         Employee employee = new Employee("EMP-1", "Іваненко Іван");
         sheet.addEmployee(employee);
         sheet.setPayrollRule(new StandardPayrollRule());
-        List<PayrollCalculation> result = sheet.calculate();
         check("Нарахування для непорожньої відомості створює рівно один запис",
-                result.size() == 1);
+                sheet.calculate().size() == 1);
 
         PayrollCalculation calculation = sheet.findCalculation(employee);
         check("findCalculation повертає завершене нарахування для доданого працівника",
                 calculation != null && calculation.getAmount().compareTo(BigDecimal.ZERO) > 0);
-
-        Receipt receipt = new Receipt(employee, calculation);
-        receipt.present();
+        new Receipt(employee, calculation).present();
         check("Receipt.present() виконується без винятків", true);
+
+        PayrollSheet empty = new PayrollSheet(new DirectorOrder("ORD-4"), new FakeStorage());
+        empty.setPayrollRule(new StandardPayrollRule());
+        check("Нарахування на порожній відомості повертає порожній список",
+                empty.calculate().isEmpty());
+
+        order.revoke();
+        check("Нарахування без чинного наказу повертає порожній список",
+                sheet.calculate().isEmpty());
+
+        PayrollSheet premature = new PayrollSheet(new DirectorOrder("ORD-6"), new FakeStorage());
+        premature.addEmployee(new Employee("EMP-1", "Іваненко Іван"));
+        check("Запит квитанції до нарахування не повертає результат",
+                premature.findCalculation(new Employee("EMP-1", "")) == null);
     }
 
-    private static void checkPrematureReceiptRejected() {
-        DirectorOrder order = new DirectorOrder("ORD-6");
-        PayrollSheet sheet = new PayrollSheet(order, newInMemoryStorageService());
-        Employee employee = new Employee("EMP-1", "Іваненко Іван");
-        sheet.addEmployee(employee);
-        PayrollCalculation calculation = sheet.findCalculation(employee);
-        check("Запит квитанції до нарахування не повертає результат", calculation == null);
-    }
+    // ---- Сервіс сховища на SQLite у пам'яті ----
 
-    /**
-     * Перевіряє поведінку upsert (FR-004a): повторне {@code saveEmployee} з тим самим
-     * {@code employeeId} і новим {@code fullName} оновлює наявний рядок, а не створює
-     * другий.
-     */
-    private static void checkSaveEmployeeUpsertDoesNotDuplicate() {
-        try {
-            Connection connection = DriverManager.getConnection("jdbc:sqlite::memory:");
-            EmployeeStorageService storageService =
+    private static void checkSqliteService() {
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite::memory:")) {
+            EmployeeStorageService service =
                     new SqliteEmployeeStorageService(connection, UUID.randomUUID().toString());
-            storageService.saveEmployee(new Employee("EMP-UPSERT", "Перше Ім'я"));
-            storageService.saveEmployee(new Employee("EMP-UPSERT", "Оновлене Ім'я"));
-
-            int count = 0;
-            String sql = "SELECT COUNT(*) AS cnt FROM employees WHERE employee_id = ?";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, "EMP-UPSERT");
-                try (ResultSet rows = statement.executeQuery()) {
-                    if (rows.next()) {
-                        count = rows.getInt("cnt");
-                    }
-                }
+            check("SQLite: findAll на порожній БД повертає порожній список",
+                    service.findAll().isEmpty());
+            service.saveEmployee(new Employee("B", "Борис"));
+            service.saveEmployee(new Employee("A", "Андрій"));
+            List<Employee> all = service.findAll();
+            check("SQLite: findAll повертає записи, упорядковані за employeeId",
+                    all.size() == 2 && all.get(0).getEmployeeId().equals("A"));
+            check("SQLite: existsById знаходить наявний і не знаходить відсутній",
+                    service.existsById("A") && !service.existsById("Z"));
+            check("SQLite: update змінює fullName і повертає false для відсутнього",
+                    service.update(new Employee("A", "Анна"))
+                            && service.findAll().get(0).getFullName().equals("Анна")
+                            && !service.update(new Employee("Z", "Ніхто")));
+            check("SQLite: delete видаляє запис і повертає false для відсутнього",
+                    service.delete("A") && !service.delete("A") && service.findAll().size() == 1);
+            boolean thrown = false;
+            try {
+                service.saveEmployee(new Employee("B", "Дублікат"));
+            } catch (StorageException e) {
+                thrown = true;
             }
-            connection.close();
-            check("Повторний saveEmployee з тим самим employeeId не створює другого рядка"
-                    + " (upsert)", count == 1);
+            check("SQLite: вставка дубліката кидає StorageException", thrown);
         } catch (SQLException e) {
-            check("Повторний saveEmployee з тим самим employeeId не створює другого рядка"
-                    + " (upsert)", false);
+            check("SQLite: з'єднання у пам'яті відкрито", false);
         }
     }
 
-    /**
-     * Перевіряє, що findEmployeesOfCurrentRun() повертає лише працівників поточного
-     * запуску (FR-009), а не всі записи з попередніх run_id.
-     */
-    private static void checkFindEmployeesOfCurrentRunReturnsOnlyCurrentRun() {
-        try {
-            Connection connection = DriverManager.getConnection("jdbc:sqlite::memory:");
-            EmployeeStorageService previousRunService =
-                    new SqliteEmployeeStorageService(connection, "попередній-запуск");
-            previousRunService.saveEmployee(new Employee("EMP-OLD", "Старий Працівник"));
+    // ---- Вигляд ----
 
-            EmployeeStorageService currentRunService =
-                    new SqliteEmployeeStorageService(connection, "поточний-запуск");
-            currentRunService.saveEmployee(new Employee("EMP-NEW", "Новий Працівник"));
+    private static void checkView() {
+        PayrollWebView view = new PayrollWebView();
+        OperationResult ok = OperationResult.success("Гаразд");
 
-            List<Employee> currentRunEmployees = currentRunService.findEmployeesOfCurrentRun();
-            connection.close();
-            check("findEmployeesOfCurrentRun повертає лише працівників поточного запуску",
-                    currentRunEmployees.size() == 1
-                            && "EMP-NEW".equals(currentRunEmployees.get(0).getEmployeeId()));
-        } catch (SQLException e) {
-            check("findEmployeesOfCurrentRun повертає лише працівників поточного запуску", false);
-        }
+        ApiResponse list = view.list(OperationResult.successWithEmployees(
+                List.of(new Employee("E1", "Іван"))));
+        check("view.list: успіх — 200 з EmployeeListBody",
+                list.status() == 200 && list.body() instanceof EmployeeListBody body
+                        && body.employees().size() == 1);
+        check("view.list: STORAGE_ERROR — 500", view.list(failure(FailureReason.STORAGE_ERROR))
+                .status() == 500);
+
+        check("view.added: успіх — 201", view.added(ok).status() == 201);
+        check("view.added: VALIDATION — 400",
+                view.added(failure(FailureReason.VALIDATION)).status() == 400);
+        check("view.added: FORBIDDEN — 409",
+                view.added(failure(FailureReason.FORBIDDEN)).status() == 409);
+        check("view.added: STORAGE_ERROR — 500",
+                view.added(failure(FailureReason.STORAGE_ERROR)).status() == 500);
+
+        check("view.updated: успіх — 200", view.updated(ok).status() == 200);
+        check("view.updated: VALIDATION — 400",
+                view.updated(failure(FailureReason.VALIDATION)).status() == 400);
+        check("view.updated: NOT_FOUND — 404",
+                view.updated(failure(FailureReason.NOT_FOUND)).status() == 404);
+        check("view.updated: FORBIDDEN — 409",
+                view.updated(failure(FailureReason.FORBIDDEN)).status() == 409);
+        check("view.updated: STORAGE_ERROR — 500",
+                view.updated(failure(FailureReason.STORAGE_ERROR)).status() == 500);
+
+        check("view.deleted: успіх — 200", view.deleted(ok).status() == 200);
+        check("view.deleted: NOT_FOUND — 404",
+                view.deleted(failure(FailureReason.NOT_FOUND)).status() == 404);
+        check("view.deleted: FORBIDDEN — 409",
+                view.deleted(failure(FailureReason.FORBIDDEN)).status() == 409);
+        check("view.deleted: STORAGE_ERROR — 500",
+                view.deleted(failure(FailureReason.STORAGE_ERROR)).status() == 500);
     }
 
-    private static EmployeeStorageService newInMemoryStorageService() {
-        try {
-            Connection connection = DriverManager.getConnection("jdbc:sqlite::memory:");
-            return new SqliteEmployeeStorageService(connection, UUID.randomUUID().toString());
-        } catch (SQLException e) {
-            throw new IllegalStateException("Не вдалося відкрити тестове з'єднання SQLite"
-                    + " у пам'яті — " + e.getMessage(), e);
-        }
+    private static OperationResult failure(FailureReason reason) {
+        return OperationResult.failure(reason, "Відмова");
+    }
+
+    private static FailureReason reason(OperationResult result) {
+        return result.getReason();
     }
 
     private static void check(String description, boolean condition) {

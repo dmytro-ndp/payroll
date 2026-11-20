@@ -1,0 +1,39 @@
+@startuml component
+title Компоненти вебзастосунку нарахування заробітної плати (MVC)
+
+actor "Користувач" as User
+
+node "Вебсервер (порт 8080)" as WebNode {
+  package "infrastructure" {
+    interface "WebServer" as WebServerI
+    component "JavalinWebServer" as Javalin
+    component "PayrollModule (Guice)" as Module
+    component "SqliteEmployeeStorageService" as SqliteService
+  }
+  package "controller" {
+    component "PayrollController" as Controller
+  }
+  package "view" {
+    component "PayrollWebView" as View
+  }
+  package "model" {
+    component "PayrollSheet" as Sheet
+    interface "EmployeeStorageService" as StorageI
+  }
+}
+
+database "SQLite\n(target/payroll.db)" as DB
+
+User --> Javalin : HTTP: / і /api/Payroll
+Javalin ..|> WebServerI
+Javalin --> Controller : list / add / update / delete
+Controller --> Sheet : операції моделі
+Controller --> View : OperationResult
+View ..> Sheet : читає OperationResult
+Sheet --> StorageI : використовує
+SqliteService ..|> StorageI
+SqliteService --> DB : SQL
+Module ..> WebServerI : прив'язує до JavalinWebServer
+Module ..> StorageI : прив'язує до SqliteEmployeeStorageService
+
+@enduml

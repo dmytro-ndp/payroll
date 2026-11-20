@@ -1,65 +1,83 @@
 sequenceDiagram
-    actor director as Директор
-    actor accountant as Бухгалтер
-    actor employee as Працівник
-    participant order as DirectorOrder
-    participant module as PayrollModule
-    participant injector as Injector
-    participant sheet as PayrollSheet
-    participant storage as SqliteEmployeeStorageService
-    participant rule as StandardPayrollRule
-    participant calculation as PayrollCalculation
-    participant receipt as Receipt
+    actor user as Користувач
+    box infrastructure
+        participant page as Вебсторінка
+        participant server as JavalinWebServer
+        participant storage as SqliteEmployeeStorageService
+    end
+    box controller
+        participant controller as PayrollController
+    end
+    box view
+        participant view as PayrollWebView
+    end
+    box model
+        participant sheet as PayrollSheet
+        participant order as DirectorOrder
+    end
 
-    director->>order: DirectorOrder(orderId)
-    Note over order: Наказ є чинним після створення.
+    Note over server: Main: Guice.createInjector(new PayrollModule(order, runId)),<br/>sheet = injector.getInstance(PayrollSheet.class),<br/>new PayrollController(sheet, new PayrollWebView()),<br/>server.start(controller, 8080)
 
-    Note over module: Main: Guice.createInjector(new PayrollModule(order, runId))
-    module->>injector: bind(EmployeeStorageService -> SqliteEmployeeStorageService),<br/>bind(DirectorOrder.toInstance(order))
-    Note over injector: Main: sheet = injector.getInstance(PayrollSheet.class)<br/>(єдине місце injector.getInstance(...) для доменного класу)
-    injector->>storage: provideStorageService(connection)
-    injector->>sheet: PayrollSheet(order, storage)<br/>(Constructor Injection, принцип V/IX)
+    user->>page: відкриває http://localhost:8080/
+    page->>server: GET /api/Payroll
+    server->>controller: list()
+    controller->>sheet: listEmployees()
+    sheet->>storage: findAll()
+    storage-->>sheet: список працівників з БД
+    sheet-->>controller: OperationResult (успіх зі списком)
+    controller->>view: list(result)
+    view-->>controller: ApiResponse(200, EmployeeListBody)
+    controller-->>server: ApiResponse
+    server-->>page: 200 JSON
+    page-->>user: таблиця працівників
 
-    accountant->>sheet: addEmployee(employee)
+    user->>page: заповнює форму й натискає «Зберегти»
+    page->>server: POST /api/Payroll {employeeId, fullName}
+    server->>controller: add(employeeId, fullName)
+    controller->>sheet: addEmployee(employee)
     sheet->>order: isActive()
-    alt наказ нечинний
+    alt наказ нечинний (R4)
         order-->>sheet: false
-        sheet-->>accountant: відмова без зміни складу
-    else працівник уже є у відомості
+        sheet-->>controller: OperationResult(FORBIDDEN)
+    else порожні або пробільні поля (R1)
         order-->>sheet: true
-        sheet-->>accountant: відмова без дубліката
-    else чинний наказ і новий працівник
-        order-->>sheet: true
+        sheet-->>controller: OperationResult(VALIDATION)
+    else дублікат employeeId (R2)
+        sheet->>storage: existsById(employeeId)
+        storage-->>sheet: true
+        sheet-->>controller: OperationResult(VALIDATION)
+    else збій БД
+        sheet->>storage: existsById / saveEmployee
+        storage--)sheet: StorageException
+        sheet-->>controller: OperationResult(STORAGE_ERROR)
+    else усі перевірки пройдено
         sheet->>storage: saveEmployee(employee)
-        Note over storage: upsert за employee_id у target/payroll.db
-        sheet-->>accountant: працівника додано
+        sheet->>storage: findAll()
+        sheet-->>controller: OperationResult(успіх)
     end
+    controller->>view: added(result)
+    view-->>controller: ApiResponse (201 / 400 / 409 / 500)
+    controller-->>server: ApiResponse
+    server-->>page: код і {"message": "..."}
+    page->>server: GET /api/Payroll (оновлення таблиці)
+    page-->>user: повідомлення й оновлена таблиця
 
-    accountant->>sheet: setPayrollRule(rule)
-    Note over sheet,rule: Явне впровадження PayrollRule через setter (принцип V).
-    accountant->>sheet: calculate()
-    sheet->>order: isActive()
-    alt наказ нечинний
-        order-->>sheet: false
-        sheet-->>accountant: відмова без PayrollCalculation
-    else відомість порожня
-        order-->>sheet: true
-        sheet-->>accountant: відмова без PayrollCalculation
-    else передумови виконано
-        order-->>sheet: true
-        sheet->>rule: calculate(employee)
-        rule-->>sheet: amount
-        sheet->>calculation: PayrollCalculation(employee, amount)
-        calculation-->>sheet: завершене нарахування
-        sheet-->>accountant: нарахування завершено
-    end
+    user->>page: «Змінити» і «Зберегти»
+    page->>server: PUT /api/Payroll/{id}
+    server->>controller: update(pathId, bodyEmployeeId, fullName)
+    controller->>sheet: updateEmployee(id, employee)
+    sheet->>storage: existsById(id), update(employee)
+    Note over sheet: Порядок: R4, R5 (NOT_FOUND), R1, R3 (VALIDATION)
+    sheet-->>controller: OperationResult
+    controller->>view: updated(result)
+    view-->>server: ApiResponse (200 / 400 / 404 / 409 / 500)
 
-    employee->>sheet: findCalculation(employee)
-    alt нарахування відсутнє
-        sheet-->>employee: відмова без Receipt
-    else нарахування завершене
-        sheet-->>employee: PayrollCalculation
-        employee->>receipt: Receipt(employee, calculation)
-        employee->>receipt: present()
-        receipt-->>employee: квитанцію видано
-    end
+    user->>page: «Видалити» (після підтвердження)
+    page->>server: DELETE /api/Payroll/{id}
+    server->>controller: delete(id)
+    controller->>sheet: deleteEmployee(id)
+    sheet->>storage: delete(id)
+    Note over sheet: Порядок: R4, R5 (NOT_FOUND)
+    sheet-->>controller: OperationResult
+    controller->>view: deleted(result)
+    view-->>server: ApiResponse (200 / 404 / 409 / 500)

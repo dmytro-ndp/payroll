@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Нарахування заробітної плати — працівники</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen">
+  <main class="max-w-3xl mx-auto p-6">
+    <h1 class="page-title text-3xl mb-6">Працівники підприємства</h1>
+
+    <div id="message" class="mb-4 p-3 hidden" role="status"></div>
+
+    <table id="employee-table" class="w-full mb-8">
+      <thead>
+        <tr>
+          <th class="text-left p-2">Ідентифікатор</th>
+          <th class="text-left p-2">ПІБ</th>
+          <th class="text-left p-2">Дії</th>
+        </tr>
+      </thead>
+      <tbody id="employee-rows"></tbody>
+    </table>
+
+    <form id="employee-form" class="p-4 form-box">
+      <h2 class="page-title text-xl mb-3">Дані працівника</h2>
+      <div class="mb-3">
+        <label for="employeeId" class="block mb-1">Ідентифікатор</label>
+        <input id="employeeId" name="employeeId" type="text" class="w-full p-2 field">
+      </div>
+      <div class="mb-3">
+        <label for="fullName" class="block mb-1">ПІБ</label>
+        <input id="fullName" name="fullName" type="text" class="w-full p-2 field">
+      </div>
+      <button type="submit" id="save-button" class="px-4 py-2 button-primary">Зберегти</button>
+      <button type="button" id="cancel-button" class="px-4 py-2 button-secondary hidden">Скасувати</button>
+    </form>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>

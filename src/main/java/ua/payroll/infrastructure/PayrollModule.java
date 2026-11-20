@@ -1,4 +1,4 @@
-package ua.payroll.di;
+package ua.payroll.infrastructure;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
@@ -10,8 +10,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import ua.payroll.model.DirectorOrder;
-import ua.payroll.storage.EmployeeStorageService;
-import ua.payroll.storage.SqliteEmployeeStorageService;
+import ua.payroll.model.EmployeeStorageService;
 
 /**
  * Guice-модуль складання застосунку (composition root). Прив'язує
@@ -31,6 +30,7 @@ public class PayrollModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(EmployeeStorageService.class).to(SqliteEmployeeStorageService.class);
+        bind(WebServer.class).to(JavalinWebServer.class).in(Singleton.class);
         bind(DirectorOrder.class).toInstance(order);
     }
 

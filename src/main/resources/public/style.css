@@ -1,0 +1,94 @@
+/* Стиль «Офіційний»: стримана синьо-сіра палітра, шрифт із зарубками,
+   чіткі рамки, прямі кути, без анімацій, контрастний текст. */
+
+:root {
+  --ink: #1b2430;
+  --paper: #f3f5f8;
+  --line: #3b4a5f;
+  --accent: #1f3a5f;
+  --success-bg: #e3edf7;
+  --success-line: #1f3a5f;
+  --error-bg: #f7e6e6;
+  --error-line: #8a1f1f;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.page-title {
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--accent);
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 0.25rem;
+}
+
+* {
+  border-radius: 0 !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+#employee-table {
+  border-collapse: collapse;
+  border: 2px solid var(--line);
+  background: #ffffff;
+}
+
+#employee-table th,
+#employee-table td {
+  border: 1px solid var(--line);
+}
+
+#employee-table th {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.form-box {
+  border: 2px solid var(--line);
+  background: #ffffff;
+}
+
+.field {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.field[readonly] {
+  background: #dfe4ea;
+}
+
+.button-primary {
+  background: var(--accent);
+  color: #ffffff;
+  border: 1px solid var(--accent);
+}
+
+.button-secondary {
+  background: #ffffff;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.button-delete {
+  background: #ffffff;
+  color: var(--error-line);
+  border: 1px solid var(--error-line);
+  font-weight: bold;
+}
+
+.message-success {
+  background: var(--success-bg);
+  border: 2px solid var(--success-line);
+  color: var(--ink);
+}
+
+.message-error {
+  background: var(--error-bg);
+  border: 2px solid var(--error-line);
+  color: var(--ink);
+}

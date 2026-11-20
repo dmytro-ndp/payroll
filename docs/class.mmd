@@ -1,88 +1,156 @@
 classDiagram
-    class Employee {
-        -String employeeId
-        -String fullName
-        +Employee(String employeeId, String fullName)
-        +String getEmployeeId()
-        +String getFullName()
+    namespace model {
+        class Employee {
+            -String employeeId
+            -String fullName
+            +Employee(String employeeId, String fullName)
+            +String getEmployeeId()
+            +String getFullName()
+        }
+
+        class DirectorOrder {
+            -String orderId
+            -boolean active
+            +DirectorOrder(String orderId)
+            +boolean isActive() final
+            +void revoke()
+        }
+
+        class PayrollSheet {
+            -DirectorOrder order
+            -EmployeeStorageService storageService
+            -PayrollRule payrollRule
+            -List~Employee~ employees
+            -List~PayrollCalculation~ calculations
+            +PayrollSheet(DirectorOrder order, EmployeeStorageService storageService)
+            +void setPayrollRule(PayrollRule payrollRule)
+            +OperationResult listEmployees()
+            +OperationResult addEmployee(Employee employee)
+            +OperationResult updateEmployee(String id, Employee employee)
+            +OperationResult deleteEmployee(String id)
+            +List~PayrollCalculation~ calculate()
+            +PayrollCalculation findCalculation(Employee employee)
+        }
+
+        class PayrollCalculation {
+            -Employee employee
+            -decimal amount
+            +PayrollCalculation(Employee employee, decimal amount)
+            +decimal getAmount()
+        }
+
+        class Receipt {
+            -Employee employee
+            -PayrollCalculation calculation
+            +Receipt(Employee employee, PayrollCalculation calculation)
+            +void present()
+        }
+
+        class PayrollRule {
+            <<interface>>
+            +decimal calculate(Employee employee)
+        }
+
+        class BasePayrollRule {
+            <<abstract>>
+            #BasePayrollRule()
+        }
+
+        class StandardPayrollRule {
+            +StandardPayrollRule()
+            +decimal calculate(Employee employee)
+        }
+
+        class EmployeeStorageService {
+            <<interface>>
+            +void saveEmployee(Employee employee)
+            +List~Employee~ findAll()
+            +boolean existsById(String employeeId)
+            +boolean update(Employee employee)
+            +boolean delete(String employeeId)
+        }
+        class OperationResult {
+            -boolean success
+            -FailureReason reason
+            -String message
+            -List~Employee~ employees
+            +success(String message) OperationResult
+            +successWithEmployees(List~Employee~ employees) OperationResult
+            +failure(FailureReason reason, String message) OperationResult
+        }
+        class FailureReason {
+            <<enumeration>>
+            VALIDATION
+            NOT_FOUND
+            FORBIDDEN
+            STORAGE_ERROR
+        }
+        class StorageException {
+            <<unchecked>>
+        }
     }
 
-    class DirectorOrder {
-        -String orderId
-        -boolean active
-        +DirectorOrder(String orderId)
-        +boolean isActive() final
-        +void revoke()
+    namespace view {
+        class PayrollWebView {
+            +ApiResponse list(OperationResult result)
+            +ApiResponse added(OperationResult result)
+            +ApiResponse updated(OperationResult result)
+            +ApiResponse deleted(OperationResult result)
+        }
+        class ApiResponse {
+            <<record>>
+            +int status
+            +Object body
+        }
+        class EmployeeItem {
+            <<record>>
+            +String employeeId
+            +String fullName
+        }
+        class EmployeeListBody {
+            <<record>>
+            +List~EmployeeItem~ employees
+        }
+        class MessageBody {
+            <<record>>
+            +String message
+        }
     }
 
-    class PayrollSheet {
-        -DirectorOrder order
-        -EmployeeStorageService storageService
-        -PayrollRule payrollRule
-        -Set~Employee~ employees
-        -List~PayrollCalculation~ calculations
-        +PayrollSheet(DirectorOrder order, EmployeeStorageService storageService)
-        +void setPayrollRule(PayrollRule payrollRule)
-        +boolean addEmployee(Employee employee)
-        +List~PayrollCalculation~ calculate()
-        +PayrollCalculation findCalculation(Employee employee)
+    namespace controller {
+        class PayrollController {
+            -PayrollSheet sheet
+            -PayrollWebView view
+            +PayrollController(PayrollSheet sheet, PayrollWebView view)
+            +ApiResponse list()
+            +ApiResponse add(String employeeId, String fullName)
+            +ApiResponse update(String pathId, String bodyEmployeeId, String fullName)
+            +ApiResponse delete(String id)
+        }
     }
 
-    class PayrollCalculation {
-        -Employee employee
-        -decimal amount
-        +PayrollCalculation(Employee employee, decimal amount)
-        +decimal getAmount()
-    }
-
-    class Receipt {
-        -Employee employee
-        -PayrollCalculation calculation
-        +Receipt(Employee employee, PayrollCalculation calculation)
-        +void present()
-    }
-
-    class PayrollRule {
-        <<interface>>
-        +decimal calculate(Employee employee)
-    }
-
-    class BasePayrollRule {
-        <<abstract>>
-        #BasePayrollRule()
-    }
-
-    class StandardPayrollRule {
-        +StandardPayrollRule()
-        +decimal calculate(Employee employee)
-    }
-
-    class EmployeeStorageService {
-        <<interface>>
-        +void saveEmployee(Employee employee)
-        +List~Employee~ findEmployeesOfCurrentRun()
-    }
-
-    class SqliteEmployeeStorageService {
-        -Connection connection
-        -String runId
-        +SqliteEmployeeStorageService(Connection connection, String runId)
-        +void saveEmployee(Employee employee)
-        +List~Employee~ findEmployeesOfCurrentRun()
-    }
-
-    class PayrollModule {
-        <<AbstractModule>>
-        -DirectorOrder order
-        -String runId
-        +PayrollModule(DirectorOrder order, String runId)
-        +void configure()
-        +Connection provideConnection()
-        +SqliteEmployeeStorageService provideStorageService(Connection connection)
-    }
-
-    class EmployeeWebPageGenerator {
-        +void generate(List~Employee~ employees, Path targetFile)
+    namespace infrastructure {
+        class WebServer {
+            <<interface>>
+            +void start(PayrollController controller, int port)
+        }
+        class JavalinWebServer {
+            +void start(PayrollController controller, int port)
+        }
+        class SqliteEmployeeStorageService {
+            -Connection connection
+            -String runId
+            +SqliteEmployeeStorageService(Connection connection, String runId)
+        }
+        class PayrollModule {
+            <<AbstractModule>>
+            -DirectorOrder order
+            -String runId
+            +PayrollModule(DirectorOrder order, String runId)
+            +void configure()
+            +Connection provideConnection()
+            +SqliteEmployeeStorageService provideStorageService(Connection connection)
+        }
     }
 
     PayrollSheet --> "1" DirectorOrder : наказ
@@ -94,9 +162,26 @@ classDiagram
     PayrollSheet --> "1" PayrollRule : правило
     BasePayrollRule ..|> PayrollRule : реалізує
     StandardPayrollRule --|> BasePayrollRule : успадковує
-    SqliteEmployeeStorageService ..|> EmployeeStorageService : реалізує
-    PayrollModule ..> EmployeeStorageService : прив'язує до SqliteEmployeeStorageService
     PayrollSheet ..> EmployeeStorageService : використання інтерфейсу (конструктор)
+    PayrollSheet ..> OperationResult : повертає
+    OperationResult --> "0..1" FailureReason : причина
+    EmployeeStorageService ..> StorageException : кидає
+    SqliteEmployeeStorageService ..|> EmployeeStorageService : реалізує
+    PayrollController --> "1" PayrollSheet : викликає
+    PayrollController --> "1" PayrollWebView : передає результат
+    PayrollWebView ..> OperationResult : читає
+    PayrollWebView ..> ApiResponse : будує
+    ApiResponse --> "1" EmployeeListBody : тіло
+    ApiResponse --> "1" MessageBody : тіло
+    EmployeeListBody o-- "0..*" EmployeeItem : працівники
+    JavalinWebServer ..|> WebServer : реалізує
+    JavalinWebServer --> "1" PayrollController : маршрути
+    PayrollModule ..> EmployeeStorageService : прив'язує до SqliteEmployeeStorageService
+    PayrollModule ..> WebServer : прив'язує до JavalinWebServer (Singleton)
 
-    note for PayrollSheet "Додавання і нарахування заборонені без чинного DirectorOrder.\nДублікат Employee не змінює склад.\nПорожня відомість не створює PayrollCalculation."
+    note for PayrollSheet "Зміни заборонені без чинного DirectorOrder (R4).
+Порядок перевірок: R4, R5 (існування), R1, R3, R2.
+Модель не повертає кодів HTTP."
+    note for PayrollWebView "Єдине місце відображення FailureReason на код:
+VALIDATION 400, NOT_FOUND 404, FORBIDDEN 409, STORAGE_ERROR 500."
     note for Receipt "Доступна лише адресатові завершеного PayrollCalculation."
